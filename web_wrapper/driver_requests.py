@@ -5,21 +5,22 @@ from web_wrapper.web import Web
 
 class DriverRequests(Web):
 
-    def __init__(self):
+    def __init__(self, headers={}):
         super().__init__()
         self.driver = None
         self.driver_type = 'requests'
+        self.default_headers = {**self._get_default_header(), **headers}
         self._create_session()
 
     # Headers Set/Get
-    def set_header(self, header):
-        self.driver.headers = header
+    def set_headers(self, headers):
+        self.driver.headers = headers
 
-    def get_header(self):
+    def get_headers(self):
         return self.driver.headers
 
-    def add_header(self, header):
-        self.driver.headers.update(header)
+    def add_headers(self, headers):
+        self.driver.headers.update(headers)
 
     # Cookies Set/Get
     def get_cookies(self):
@@ -57,7 +58,7 @@ class DriverRequests(Web):
         """
         self.driver = requests.Session()
         # Set default headers
-        self.set_header(self._get_default_header())
+        self.set_headers(self.default_headers)
 
     def reset(self):
         """
@@ -87,7 +88,7 @@ class DriverRequests(Web):
                                        timeout=timeout,
                                        **driver_kwargs)
 
-            # Set data to access
+            # Set data to access from script
             self.status_code = response.status_code
             self.url = response.url
             self.response = response
