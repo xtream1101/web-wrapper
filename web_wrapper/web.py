@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from fake_useragent import UserAgent
 from scraper_monitor import scraper_monitor
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from web_wrapper.selenium_utils import SeleniumHTTPError
 
 logger = logging.getLogger(__name__)
 
@@ -25,28 +25,15 @@ Things to add:
 """
 
 
-class SeleniumHTTPError(IOError):
-    """
-    An HTTP error occurred in Selenium
-    Mimic requests.exceptions.HTTPError for status_code
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.response = type('', (), {})()
-
-        # Match how the status code is formatted in requests.exceptions.HTTPError
-        self.response.status_code = kwargs.get('status_code')
-
-
 class Web:
     """
     Web related functions
     Need to be on its own that way each profile can have its own instance of it for proxy support
     """
 
-    def __init__(self, scraper=None):
+    def __init__(self):
         self.ua = UserAgent()
-        self.scraper = scraper
+        self.scraper = None
 
         # Number of times to re-try a url
         self._num_retries = 3
@@ -64,10 +51,10 @@ class Web:
         self.response = None
 
     def _get_default_header(self):
-        new_header = {'User-Agent': self.ua.random,
-                      'Accept-Encoding': 'gzip',
-                      }
-        return new_header
+        default_header = {'User-Agent': self.ua.random,
+                          # 'Accept-Encoding': 'gzip, deflate',  # Setting this breaks everything somehow
+                          }
+        return default_header
 
     def get_image_dimension(self, url):
         """
@@ -140,12 +127,12 @@ class Web:
         Fullscreen workaround for chrome
         Source: http://seleniumpythonqa.blogspot.com/2015/08/generate-full-page-screenshot-in-chrome.html
         """
-        total_width = self.driver.selenium.execute_script("return document.body.offsetWidth")
-        total_height = self.driver.selenium.execute_script("return document.body.parentNode.scrollHeight")
-        viewport_width = self.driver.selenium.execute_script("return document.body.clientWidth")
-        viewport_height = self.driver.selenium.execute_script("return window.innerHeight")
         logger.info("Starting chrome full page screenshot workaround. Total: ({0}, {1}), Viewport: ({2},{3})"
                     .format(total_width, total_height, viewport_width, viewport_height))
+        total_width = self.driver.execute_script("return document.body.offsetWidth")
+        total_height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
+        viewport_width = self.driver.execute_script("return document.body.clientWidth")
+        viewport_height = self.driver.execute_script("return window.innerHeight")
         rectangles = []
 
         i = 0
@@ -202,7 +189,7 @@ class Web:
         logger.info("Finishing chrome full page screenshot workaround...")
         return True
 
-    def screenshot(self, filename, element=None, delay=0):
+    def screenshot(self, save_path, element=None, delay=0):
         """
         This can be used no matter what driver that is being used
         * ^ Soon requests support will be added
@@ -212,28 +199,28 @@ class Web:
 
         Return the filepath of the image
         """
-
-        if self.driver.selenium is None:
-            # If no selenium driver then we are done here
-            # TODO: create a self.driver_for_requests if one does not exists for use with requests as a primary
+        if save_path is None:
+            logger.error("save_path cannot be None")
             return None
 
-        if self.scraper is not None:
-            # Upload to s3
-            if self.scraper.raw_config.getboolean('s3', 'enabled') is True:
-                save_location = os.path.join(tempfile.gettempdir(), cutil.create_uid())
-
-            else:
-                save_location = os.path.join(self.scraper.raw_config.get('global', 'base_data_dir'),
-                                             self.scraper.SCRAPER_NAME,
-                                             filename)
-                save_location = cutil.norm_path(save_location)
-
+        save_location = cutil.norm_path(save_path)
         cutil.create_path(save_location)
-        logger.info("Taking screenshot, {filename}".format(filename=save_location))
+        logger.info("Taking screenshot: {filename}".format(filename=save_location))
+
+        if not self.driver_type.startswith('selenium'):
+            logger.debug("Create tmp phantomjs web driver for screenshot")
+            # Create a tmp phantom driver to take the screenshot for us
+            from web_wrapper import DriverSeleniumPhantomJS
+            headers = self.get_headers()  # Get headers to pass to the driver
+            # TODO: ^ Do the same thing for cookies
+            screenshot_web = DriverSeleniumPhantomJS(headers=headers)
+            screenshot_web.get_site(self.url, page_format='raw')
+            screenshot_driver = screenshot_web.driver
+        else:
+            screenshot_driver = self.driver
 
         # If a background color does need to be set
-        # self.driver.selenium.execute_script('document.body.style.background = "{}"'.format('white'))
+        # self.driver.execute_script('document.body.style.background = "{}"'.format('white'))
 
         # Take screenshot
         # Give the page some extra time to load
@@ -242,14 +229,15 @@ class Web:
             # Need to do this for chrome to get a fullpage screenshot
             self.chrome_fullpage_screenshot(save_location, delay)
         else:
-            self.driver.selenium.get_screenshot_as_file(save_location)
+            screenshot_driver.get_screenshot_as_file(save_location)
 
         # Use .png extenstion for users save file
-        if not filename.endswith('.png'):
-            filename += '.png'
+        if not save_location.endswith('.png'):
+            save_location += '.png'
 
         # If an element was passed, just get that element so crop the screenshot
         if element is not None:
+            logger.debug("Crop screenshot")
             # Crop the image
             el_location = element.location
             el_size = element.size
@@ -264,52 +252,15 @@ class Web:
             except Exception as e:
                 raise e.with_traceback(sys.exc_info()[2])
 
-        if self.scraper is not None and self.scraper.raw_config.getboolean('s3', 'enabled') is True:
-            # Upload to s3
-            local_file = save_location
-            save_location = self.upload_s3(filename, local_file)
-            os.remove(local_file)
+        if not self.driver_type.startswith('selenium'):
+            # Quit the tmp driver created to take the screenshot
+            screenshot_web.quit()
 
         return save_location
 
     ###########################################################################
     # Get/load page
     ###########################################################################
-    def get_selenium_header(self):
-        """
-        Return server response headers from selenium request
-        Also includes the keys `status-code` and `status-text`
-        """
-        javascript = """
-                     function parseResponseHeaders( headerStr ){
-                       var headers = {};
-                       if( !headerStr ){
-                         return headers;
-                       }
-                       var headerPairs = headerStr.split('\\u000d\\u000a');
-                       for( var i = 0; i < headerPairs.length; i++ ){
-                         var headerPair = headerPairs[i];
-                         var index = headerPair.indexOf('\\u003a\\u0020');
-                         if( index > 0 ){
-                           var key = headerPair.substring(0, index);
-                           var val = headerPair.substring(index + 2);
-                           headers[key] = val;
-                         }
-                       }
-                       return headers;
-                     }
-                     var req = new XMLHttpRequest();
-                     req.open('GET', document.location, false);
-                     req.send(null);
-                     var header = parseResponseHeaders(req.getAllResponseHeaders().toLowerCase());
-                     header['status-code'] = req.status;
-                     header['status-text'] = req.statusText;
-                     return header;
-                     """
-
-        if self.driver.selenium is not None:
-            return self.driver.selenium.execute_script(javascript)
-
     def get_site(self, url, cookies={}, page_format='html', return_on_error=[], retry_enabled=True,
                  num_tries=0, num_apikey_tries=0, headers={}, api=False, track_stat=True, timeout=30,
                  force_requests=False, driver_args=(), driver_kwargs={}):
@@ -412,60 +363,6 @@ class Web:
 
         return rdata
 
-    def get_site_selenium(self, url, page_format='html', headers={}, cookies={}, timeout=30):
-        """
-        Try and return page content in the requested format using selenium
-        """
-        try:
-            # **TODO**: Find what exception this will throw and catch it and call
-            #   self.cweb.driver.execute_script("window.stop()")
-            # Then still try and get the source from the page
-            self.driver.selenium.set_page_load_timeout(timeout)
-
-            self.driver.selenium.get(url)
-            header_data = self.get_selenium_header()
-
-        except TimeoutException:
-            logger.warning("Page timeout: {}".format(url))
-            try:
-                scraper_monitor.failed_url(url, 'Timeout')
-            except (NameError, AttributeError):
-                # Happens when scraper_monitor is not being used/setup
-                pass
-            except Exception:
-                logger.exception("Unknown problem with scraper_monitor sending a failed url")
-
-        except Exception as e:
-            raise e.with_traceback(sys.exc_info()[2])
-
-        else:
-            # If an exception was not thrown then check the http status code
-            status_code = header_data['status-code']
-            if status_code < 400:
-                # If the http status code is not an error
-                rdata = None
-                if page_format == 'html':
-                    rdata = self.get_soup(self.driver.selenium.page_source, input_type='html')
-
-                elif page_format == 'json':
-                    rdata = json.loads(self.driver.selenium.find_element_by_tag_name('body').text)
-
-                elif page_format == 'xml':
-                    rdata = self.get_soup(self.driver.selenium.page_source, input_type='xml')
-
-                elif page_format == 'raw':
-                    # Return unparsed html
-                    # In this case just use selenium's built in find/parsing
-                    rdata = True
-
-                else:
-                    rdata = False
-
-                return rdata
-            else:
-                # If http status code is 400 or greater
-                raise SeleniumHTTPError("Status code >= 400", status_code=status_code)
-
     def _get_site_status_code(self, url, status_code, api, num_tries, num_apikey_tries):
         """
         Check the http status code and num_tries/num_apikey_tries to see if it should try again or not
@@ -515,32 +412,32 @@ class Web:
 
         return None
 
-    def download(self, url, filename, header={}, redownload=False, post_process=None):
+    def download(self, url, save_path, header={}, redownload=False):
         """
         Currently does not use the proxied driver
-        TODO: Use self.driver.* to download the file. This way we are behind the same proxy and headers
+        TODO: Be able to use cookies just like headers is used here
         :return: the path of the file that was saved
         """
-        if len(header) == 0:
-            header = self.header
+        if save_path is None:
+            logger.error("save_path cannot be None")
+            return None
 
-        logger.info("Download {url} to {filename}".format(url=url, filename=filename))
-        if self.scraper is not None:
-            if self.scraper.raw_config.getboolean('s3', 'enabled') is True:
-                save_location = os.path.join(tempfile.gettempdir(), cutil.create_uid())
+        # Get headers of current web driver
+        header = self.get_header()
+        if len(header) > 0:
+            # Add more headers if needed
+            header.update(header)
 
-            else:
-                save_location = os.path.join(self.scraper.raw_config.get('global', 'base_data_dir'),
-                                             self.scraper.SCRAPER_NAME,
-                                             filename)
-                save_location = cutil.norm_path(save_location)
-                if redownload is False:
-                    # See if we already have the file
-                    if os.path.isfile(save_location):
-                        logger.info("File {save_location} already exists".format(save_location=save_location))
-                        return save_location
+        logger.info("Download {url} to {save_path}".format(url=url, save_path=save_path))
 
-        # Create the path on disk (excluding the file)
+        save_location = cutil.norm_path(save_path)
+        if redownload is False:
+            # See if we already have the file
+            if os.path.isfile(save_location):
+                logger.info("File {save_location} already exists".format(save_location=save_location))
+                return save_location
+
+        # Create the dir path on disk
         cutil.create_path(save_location)
 
         if url.startswith('//'):
@@ -561,40 +458,4 @@ class Web:
             save_location = None
             logger.exception("Download Error: {url}".format(url=url))
 
-        # Postprocess the file if needed
-        if post_process is not None:
-            post_process(save_location)
-
-        if self.scraper is not None and self.scraper.raw_config.getboolean('s3', 'enabled') is True:
-            # Upload to s3
-            local_file = save_location
-            save_location = self.upload_s3(filename, local_file)
-            os.remove(local_file)
-
         return save_location
-
-    def upload_s3(self, filename, local_file):
-        """
-        Upload file to an s3 service and return the url for that object
-        """
-        logger.info("Upload {filename} to s3".format(filename=filename))
-        return_name = None
-
-        if self.scraper is not None and self.scraper.raw_config.getboolean('s3', 'enabled') is True:
-            try:
-                upload_path = '{env}/{filename}'.format(env=self.scraper.RUN_SCRAPER_AS, filename=filename)
-                self.scraper.s3.fput_object(self.scraper.SCRAPER_NAME, upload_path, local_file)
-                return_name = '{schema}://{host}/{bucket}/{file_location}'\
-                              .format(schema=self.scraper.raw_config.get('s3', 'schema'),
-                                      host=self.scraper.raw_config.get('s3', 'host'),
-                                      bucket=self.scraper.SCRAPER_NAME,
-                                      file_location=upload_path)
-
-            except ResponseError as error:
-                logger.exception("Error uploading file `{filename}` to bucket `{bucket}`"
-                                 .format(filename=filename, bucket=self.scraper.SCRAPER_NAME))
-
-        else:
-            logger.error("S3 is not enabled")
-
-        return return_name

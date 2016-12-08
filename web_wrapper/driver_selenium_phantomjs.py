@@ -1,28 +1,50 @@
+import logging
 from selenium import webdriver
+from web_wrapper.web import Web
+from web_wrapper.selenium_utils import SeleniumUtils
 
 
-class DriverPhantomjs:
+logger = logging.getLogger(__name__)
 
-    def __init__(self):
+
+class DriverSeleniumPhantomJS(Web, SeleniumUtils):
+
+    def __init__(self, headers={}):
+        super().__init__()
+        self.driver = None
+        self.driver_type = 'selenium_phantomjs'
         self.phantomjs_service_args = []
-        self.last_header_value = None
-        self.last_proxy_value = None
+        self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
+        self.current_headers = {**self._get_default_header(), **headers}
+        self.current_proxy = None
+        self.set_headers(self.current_headers, update=False)
         self._create_session()
 
-    def update_header(self, header):
-        self.last_header_value.update(header)
-        self.set_header(self.last_header_value)
+    # Headers Set/Get
+    def set_headers(self, headers, update=True):
+        logger.debug("Set phantomjs headers")
 
-    def set_header(self, header):
-        self.last_header_value = header
-        user_agent = "phantomjs.page.settings.userAgent"
-        accept_encoding = "phantomjs.page.settings.acceptEncoding"
-        webdriver.DesiredCapabilities.PHANTOMJS[user_agent] = header.get('User-Agent')
-        webdriver.DesiredCapabilities.PHANTOMJS[accept_encoding] = header.get('Accept-Encoding')
+        self.current_headers = headers
 
-        # Recreate webdriver with new header
-        self._update()
+        # Clear headers
+        self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
 
+        for key, value in headers.items():
+            self.dcap['phantomjs.page.customHeaders.{}'.format(key)] = value
+
+        if update is True:
+            # Recreate webdriver with new header
+            self._update()
+
+    def get_headers(self):
+        # TODO: Try and get from phantom directly to be accurate
+        return self.current_headers
+
+    def add_headers(self, headers):
+        self.current_headers.update(headers)
+        self.set_headers(self.current_headers)
+
+    # Proxy Set/Get
     def set_proxy(self, proxy_parts):
         """
         Set proxy for requests session
@@ -30,14 +52,13 @@ class DriverPhantomjs:
         if proxy_parts is None:
             proxy_parts = {}
 
-        proxy = proxy = proxy_parts.get('curl')
-        # Did we change proxies?
+        proxy = proxy_parts.get('curl')
         update_web_driver = False
-        if self.last_proxy_value != proxy:
+        if self.current_proxy != proxy:
+            # Did we change proxies?
             update_web_driver = True
-            self.last_proxy_value = proxy
 
-        self.last_proxy_value = proxy
+        self.current_proxy = proxy
         if proxy is None:
             self.phantomjs_service_args = []
         else:
@@ -49,17 +70,24 @@ class DriverPhantomjs:
         if update_web_driver is True:
             self._update()
 
+    def get_proxy(self):
+        return self.current_proxy
+
+    # Session
     def _create_session(self):
         """
         Creates a fresh session with no/default headers and proxies
         """
-        self.selenium = webdriver.PhantomJS(service_args=self.phantomjs_service_args)
-        self.selenium.set_window_size(1920, 1080)
+        logger.debug("Create new phantomjs web driver")
+        self.driver = webdriver.PhantomJS(service_args=self.phantomjs_service_args,
+                                          desired_capabilities=self.dcap)
+        self.driver.set_window_size(1920, 1080)
 
     def _update(self):
         """
         Re create the web driver with the new proxy or header settings
         """
+        logger.debug("Update phantomjs web driver")
         self.quit()
         self._create_session()
 
@@ -72,7 +100,7 @@ class DriverPhantomjs:
         # Clear proxy data
         self.phantomjs_service_args = []
         # Clear headers
-        webdriver.DesiredCapabilities.PHANTOMJS = {}
+        self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
         # Create new web driver
         self._create_session()
 
@@ -80,6 +108,6 @@ class DriverPhantomjs:
         """
         Generic function to close distroy and session data
         """
-        if self.selenium is not None:
-            self.selenium.quit()
-        self.selenium = None
+        if self.driver is not None:
+            self.driver.quit()
+        self.driver = None
