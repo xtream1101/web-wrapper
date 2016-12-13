@@ -31,14 +31,12 @@ class DriverRequests(Web):
         pass
 
     # Proxy Set/Get
-    def set_proxy(self, proxy_parts):
+    def set_proxy(self, proxy):
         """
         Set proxy for requests session
         """
-        if proxy_parts is None:
-            proxy_parts = {}
+        # TODO: Validate proxy url format
 
-        proxy = proxy_parts.get('curl')
         if proxy is None:
             self.driver.proxies = {'http': None,
                                    'https': None

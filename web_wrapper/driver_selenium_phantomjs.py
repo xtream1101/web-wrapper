@@ -1,3 +1,4 @@
+import re
 import logging
 from selenium import webdriver
 from web_wrapper.web import Web
@@ -6,18 +7,22 @@ from web_wrapper.selenium_utils import SeleniumUtils
 
 logger = logging.getLogger(__name__)
 
+# Have all compiles up here to run once
+proxy_pattern = re.compile('(?:(?P<schema>\w+):\/\/)(?:(?P<user>.*):(?P<password>.*)@)?(?P<address>.*)')
+
 
 class DriverSeleniumPhantomJS(Web, SeleniumUtils):
 
-    def __init__(self, headers={}):
+    def __init__(self, headers={}, proxy=None):
         super().__init__()
         self.driver = None
         self.driver_type = 'selenium_phantomjs'
         self.phantomjs_service_args = []
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
         self.current_headers = {**self._get_default_header(), **headers}
-        self.current_proxy = None
+        self.current_proxy = proxy
         self.set_headers(self.current_headers, update=False)
+        self.set_proxy(self.current_proxy, update=False)
         self._create_session()
 
     # Headers Set/Get
@@ -45,14 +50,10 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         self.set_headers(self.current_headers)
 
     # Proxy Set/Get
-    def set_proxy(self, proxy_parts):
+    def set_proxy(self, proxy, update=True):
         """
         Set proxy for requests session
         """
-        if proxy_parts is None:
-            proxy_parts = {}
-
-        proxy = proxy_parts.get('curl')
         update_web_driver = False
         if self.current_proxy != proxy:
             # Did we change proxies?
@@ -62,12 +63,28 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         if proxy is None:
             self.phantomjs_service_args = []
         else:
-            self.phantomjs_service_args = ['--proxy={}'.format(proxy),
-                                           '--proxy-type=http',
+            # Break proxy apart
+            results = re.match(proxy_pattern, proxy)
+            if results:
+                matched = results.groupdict()
+                schema = matched.get('schema')
+                user = matched.get('user')
+                password = matched.get('password')
+                address = matched.get('address')
+
+            else:
+                logger.error("Invalid proxy format `{proxy}`".format(proxy=proxy))
+                return None
+
+            self.phantomjs_service_args = ['--proxy={address}'.format(address=address),
+                                           '--proxy-type={schema}'.format(schema=schema),
                                            ]
+            if user is not None:
+                self.phantomjs_service_args.append('--proxy-auth={user}:{password}'
+                                                   .format(user=user, password=password))
 
         # Recreate webdriver with new proxy settings
-        if update_web_driver is True:
+        if update is True and update_web_driver is True:
             self._update()
 
     def get_proxy(self):
