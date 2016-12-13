@@ -1,6 +1,7 @@
 import sys
 import json
 import logging
+import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
 
@@ -22,7 +23,7 @@ class SeleniumHTTPError(IOError):
 
 class SeleniumUtils:
 
-    def __inti__(self):
+    def __init__(self):
         pass
 
     def get_selenium_header(self):
@@ -120,3 +121,39 @@ class SeleniumUtils:
             else:
                 # If http status code is 400 or greater
                 raise SeleniumHTTPError("Status code >= 400", status_code=status_code)
+
+    def hover(self, element):
+        """
+        In selenium, move cursor over an element
+        :element: Object found using driver.find_...("element_class/id/etc")
+        """
+        javascript = """var evObj = document.createEvent('MouseEvents');
+                        evObj.initMouseEvent(\"mouseover\", true, false, window, 0, 0, 0, 0, 0, \
+                        false, false, false, false, 0, null);
+                        arguments[0].dispatchEvent(evObj);"""
+
+        if self.driver.selenium is not None:
+            self.driver.selenium.execute_script(javascript, element)
+
+    def reload_page(self):
+        logger.info("Refreshing page...")
+        if self.driver.selenium is not None:
+            try:
+                # Stop the current loading action before refreshing
+                self.driver.selenium.send_keys(webdriver.common.keys.Keys.ESCAPE)
+                self.driver.selenium.refresh()
+            except Exception:
+                logger.exception("Exception when reloading the page")
+
+    def scroll_to_bottom(self):
+        """
+        Scoll to the very bottom of the page
+        TODO: add increment & delay options to scoll slowly down the whole page to let each section load in
+        """
+        if self.driver.selenium is not None:
+            try:
+                self.driver.selenium.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            except WebDriverException:
+                self.driver.selenium.execute_script("window.scrollTo(0, 50000);")
+            except Exception:
+                logger.exception("Unknown error scrolling page")

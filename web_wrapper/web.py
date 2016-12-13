@@ -80,45 +80,6 @@ class Web:
             rdata = BeautifulSoup(raw_content, 'lxml')
         return rdata
 
-    ###########################################################################
-    # Selenium Actions
-    ###########################################################################
-    def hover(self, element):
-        """
-        In selenium, move cursor over an element
-        :element: Object found using driver.find_...("element_class/id/etc")
-        """
-        javascript = """var evObj = document.createEvent('MouseEvents');
-                        evObj.initMouseEvent(\"mouseover\", true, false, window, 0, 0, 0, 0, 0, \
-                        false, false, false, false, 0, null);
-                        arguments[0].dispatchEvent(evObj);"""
-
-        if self.driver.selenium is not None:
-            self.driver.selenium.execute_script(javascript, element)
-
-    def reload_page(self):
-        logger.info("Refreshing page...")
-        if self.driver.selenium is not None:
-            try:
-                # Stop the current loading action before refreshing
-                self.driver.selenium.send_keys(webdriver.common.keys.Keys.ESCAPE)
-                self.driver.selenium.refresh()
-            except Exception:
-                logger.exception("Exception when reloading the page")
-
-    def scroll_to_bottom(self):
-        """
-        Scoll to the very bottom of the page
-        TODO: add increment & delay options to scoll slowly down the whole page to let each section load in
-        """
-        if self.driver.selenium is not None:
-            try:
-                self.driver.selenium.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            except WebDriverException:
-                self.driver.selenium.execute_script("window.scrollTo(0, 50000);")
-            except Exception:
-                logger.exception("Unknown error scrolling page")
-
     def chrome_fullpage_screenshot(self, file, delay=0):
         """
         Fullscreen workaround for chrome
@@ -209,8 +170,9 @@ class Web:
             # Create a tmp phantom driver to take the screenshot for us
             from web_wrapper import DriverSeleniumPhantomJS
             headers = self.get_headers()  # Get headers to pass to the driver
+            proxy = self.get_proxy()  # Get the current proxy being used if any
             # TODO: ^ Do the same thing for cookies
-            screenshot_web = DriverSeleniumPhantomJS(headers=headers)
+            screenshot_web = DriverSeleniumPhantomJS(headers=headers, proxy=proxy)
             screenshot_web.get_site(self.url, page_format='raw')
             screenshot_driver = screenshot_web.driver
         else:
