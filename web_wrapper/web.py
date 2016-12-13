@@ -1,18 +1,15 @@
 import os
 import sys
 import time
-import json
 import cutil
 import urllib
 import logging
 import requests
-import tempfile
 from PIL import Image  # pip install pillow
 from io import BytesIO
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from fake_useragent import UserAgent
-from scraper_monitor import scraper_monitor
 from web_wrapper.selenium_utils import SeleniumHTTPError
 
 logger = logging.getLogger(__name__)
@@ -127,12 +124,12 @@ class Web:
         Fullscreen workaround for chrome
         Source: http://seleniumpythonqa.blogspot.com/2015/08/generate-full-page-screenshot-in-chrome.html
         """
-        logger.info("Starting chrome full page screenshot workaround. Total: ({0}, {1}), Viewport: ({2},{3})"
-                    .format(total_width, total_height, viewport_width, viewport_height))
         total_width = self.driver.execute_script("return document.body.offsetWidth")
         total_height = self.driver.execute_script("return document.body.parentNode.scrollHeight")
         viewport_width = self.driver.execute_script("return document.body.clientWidth")
         viewport_height = self.driver.execute_script("return window.innerHeight")
+        logger.info("Starting chrome full page screenshot workaround. Total: ({0}, {1}), Viewport: ({2},{3})"
+                    .format(total_width, total_height, viewport_width, viewport_height))
         rectangles = []
 
         i = 0
@@ -368,14 +365,6 @@ class Web:
         Check the http status code and num_tries/num_apikey_tries to see if it should try again or not
         Log any data as needed
         """
-        try:
-            scraper_monitor.failed_url(url, 'HTTP Status', status_code=status_code, num_tries=num_tries)
-        except (NameError, AttributeError):
-            # Happens when scraper_monitor is not being used/setup
-            pass
-        except Exception:
-            logger.exception("Unknown problem with scraper_monitor sending a failed url")
-
         # Make status code an int
         try:
             status_code = int(status_code)
