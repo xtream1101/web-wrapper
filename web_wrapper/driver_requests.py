@@ -5,11 +5,12 @@ from web_wrapper.web import Web
 
 class DriverRequests(Web):
 
-    def __init__(self, headers={}):
+    def __init__(self, headers={}, proxy=None):
         super().__init__()
         self.driver = None
         self.driver_type = 'requests'
         self.default_headers = {**self._get_default_header(), **headers}
+        self.current_proxy = proxy
         self._create_session()
 
     # Headers Set/Get
@@ -46,8 +47,10 @@ class DriverRequests(Web):
                                    'https': proxy
                                    }
 
+        self.current_proxy = proxy
+
     def get_proxy(self):
-        return self.driver.proxies
+        return self.current_proxy
 
     # Session
     def _create_session(self):
@@ -57,6 +60,7 @@ class DriverRequests(Web):
         self.driver = requests.Session()
         # Set default headers
         self.set_headers(self.default_headers)
+        self.set_proxy(self.current_proxy)
 
     def reset(self):
         """
