@@ -8,6 +8,7 @@ from web_wrapper.selenium_utils import SeleniumUtils
 logger = logging.getLogger(__name__)
 
 # Have all compiles up here to run once
+# TODO: Move to cuil, have a section for regex's
 proxy_pattern = re.compile('(?:(?P<schema>\w+):\/\/)(?:(?P<user>.*):(?P<password>.*)@)?(?P<address>.*)')
 
 
