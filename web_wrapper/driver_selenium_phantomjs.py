@@ -1,4 +1,4 @@
-import re
+import cutil
 import logging
 from selenium import webdriver
 from web_wrapper.web import Web
@@ -6,10 +6,6 @@ from web_wrapper.selenium_utils import SeleniumUtils
 
 
 logger = logging.getLogger(__name__)
-
-# Have all compiles up here to run once
-# TODO: Move to cuil, have a section for regex's
-proxy_pattern = re.compile('(?:(?P<schema>\w+):\/\/)(?:(?P<user>.*):(?P<password>.*)@)?(?P<address>.*)')
 
 
 class DriverSeleniumPhantomJS(Web, SeleniumUtils):
@@ -64,25 +60,13 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         if proxy is None:
             self.phantomjs_service_args = []
         else:
-            # Break proxy apart
-            results = re.match(proxy_pattern, proxy)
-            if results:
-                matched = results.groupdict()
-                schema = matched.get('schema')
-                user = matched.get('user')
-                password = matched.get('password')
-                address = matched.get('address')
+            proxy_parts = cutil.get_proxy_parts(proxy)
 
-            else:
-                logger.error("Invalid proxy format `{proxy}`".format(proxy=proxy))
-                return None
-
-            self.phantomjs_service_args = ['--proxy={address}'.format(address=address),
-                                           '--proxy-type={schema}'.format(schema=schema),
+            self.phantomjs_service_args = ['--proxy={host}:{port}'.format(**proxy_parts),
+                                           '--proxy-type={schema}'.format(**proxy_parts),
                                            ]
-            if user is not None:
-                self.phantomjs_service_args.append('--proxy-auth={user}:{password}'
-                                                   .format(user=user, password=password))
+            if proxy_parts.get('user') is not None:
+                self.phantomjs_service_args.append('--proxy-auth={user}:{password}'.format(**proxy_parts))
 
         # Recreate webdriver with new proxy settings
         if update is True and update_web_driver is True:
