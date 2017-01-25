@@ -26,6 +26,7 @@ class DriverSeleniumChrome(Web, SeleniumUtils):
         logger.debug("Set chrome headers")
 
         self.current_headers = headers
+        # TODO: Remove any headrs that are no longer in the dict
 
         # Clear headers?
         # TODO

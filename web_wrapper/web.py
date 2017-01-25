@@ -223,8 +223,9 @@ class Web:
                 logger.info("{}: Create a new profile to use".format(e_name))
                 time.sleep(2)
                 # A bad api key would not give this error, no need to get a new one
-                self.new_profile(api=False)
-                return self.get_site(*get_site_args, **get_site_kwargs)
+                # self.new_profile(api=False)  # TODO
+                # return self.get_site(*get_site_args, **get_site_kwargs)
+                return None
 
             else:
                 logger.error("{} [get_site]: try #{} on{}".format(e_name, num_tries, url))
@@ -281,7 +282,7 @@ class Web:
             logger.info("HTTP {} error, try #{} on url: {}".format(status_code, num_tries, url))
             logger.warning("{}: Create a new profile to use".format(status_code))
             time.sleep(.5)
-            self.new_profile(api)
+            # self.new_profile(api)  # TODO
             return True
 
         elif status_code in [500, 503, 504, 520] and num_tries < self._num_retries:
@@ -307,7 +308,7 @@ class Web:
             return None
 
         # Get headers of current web driver
-        header = self.get_header()
+        header = self.get_headers()
         if len(header) > 0:
             # Add more headers if needed
             header.update(header)
