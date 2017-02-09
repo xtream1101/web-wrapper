@@ -1,4 +1,4 @@
-from setuptools import setup
+from distutils.core import setup
 
 
 setup(
@@ -16,7 +16,6 @@ setup(
         "Environment :: Other Environment",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
-        "License :: OSI Approved :: MIT License",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Utilities",
     ],
