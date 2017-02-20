@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='web_wrapper',
     packages=['web_wrapper'],
-    version='0.1.0',
+    version='0.1.1',
     description='Web wrapper for Selenium/requests',
     author='Eddy Hintze',
     author_email="eddy.hintze@gmail.com",
@@ -20,8 +20,8 @@ setup(
         "Topic :: Utilities",
     ],
     install_requires=[
-        'cutil',
         'bs4',
+        'cutil',
         'pillow',
         'requests',
         'selenium',

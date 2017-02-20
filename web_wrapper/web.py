@@ -313,13 +313,13 @@ class Web:
             # Add more headers if needed
             header.update(header)
 
-        logger.info("Download {url} to {save_path}".format(url=url, save_path=save_path))
+        logger.debug("Download {url} to {save_path}".format(url=url, save_path=save_path))
 
         save_location = cutil.norm_path(save_path)
         if redownload is False:
             # See if we already have the file
             if os.path.isfile(save_location):
-                logger.info("File {save_location} already exists".format(save_location=save_location))
+                logger.debug("File {save_location} already exists".format(save_location=save_location))
                 return save_location
 
         # Create the dir path on disk
