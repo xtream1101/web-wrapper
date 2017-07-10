@@ -28,15 +28,26 @@ class Web:
     Need to be on its own that way each profile can have its own instance of it for proxy support
     """
 
-    def __init__(self):
+    def __init__(self, headers={}, proxy=None):
         self.ua = UserAgent()
         self.scraper = None
 
         # Number of times to re-try a url
         self._num_retries = 3
 
+        if headers is not None:
+            self.default_headers = {**self._get_default_header(), **headers}
+        else:
+            self.default_headers = {}
+
         # Set the default response values
         self._reset_response()
+
+    def set_headers(self, headers):
+        if not headers:
+            logger.warning("Headers set to None! Site may not load correctly.")
+
+        self.set_headers_driver(headers)
 
     def _reset_response(self):
         """

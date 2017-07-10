@@ -1,20 +1,23 @@
 import sys
 import requests
 from web_wrapper.web import Web
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DriverRequests(Web):
 
     def __init__(self, headers={}, proxy=None):
-        super().__init__()
+        super().__init__(headers=headers, proxy=proxy)
         self.driver = None
         self.driver_type = 'requests'
-        self.default_headers = {**self._get_default_header(), **headers}
         self.current_proxy = proxy
+
         self._create_session()
 
     # Headers Set/Get
-    def set_headers(self, headers):
+    def set_headers_driver(self, headers):
         self.driver.headers = headers
 
     def get_headers(self):
