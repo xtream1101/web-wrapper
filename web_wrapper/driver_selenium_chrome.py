@@ -10,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 class DriverSeleniumChrome(Web, SeleniumUtils):
 
-    def __init__(self, headers={}, proxy=None):
+    def __init__(self, headers={}, proxy=None, **driver_args):
         super().__init__()
         self.driver = None
         self.driver_type = 'selenium_chrome'
+        self.driver_args = driver_args
         self.opts = webdriver.ChromeOptions()
         self.current_headers = {**self._get_default_header(), **headers}
         self.current_proxy = proxy
@@ -77,7 +78,7 @@ class DriverSeleniumChrome(Web, SeleniumUtils):
         """
         Creates a fresh session with no/default headers and proxies
         """
-        self.driver = webdriver.Chrome(chrome_options=self.opts)
+        self.driver = webdriver.Chrome(chrome_options=self.opts, **self.driver_args)
         self.driver.set_window_size(1920, 1080)
 
     def _update(self):

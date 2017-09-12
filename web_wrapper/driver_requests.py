@@ -8,10 +8,11 @@ logger = logging.getLogger(__name__)
 
 class DriverRequests(Web):
 
-    def __init__(self, headers={}, proxy=None):
+    def __init__(self, headers={}, proxy=None, **driver_args):
         super().__init__(headers=headers, proxy=proxy)
         self.driver = None
         self.driver_type = 'requests'
+        self.driver_args = driver_args
         self.current_proxy = proxy
 
         self._create_session()
@@ -60,7 +61,7 @@ class DriverRequests(Web):
         """
         Creates a fresh session with the default header (random UA)
         """
-        self.driver = requests.Session()
+        self.driver = requests.Session(**self.driver_args)
         # Set default headers
         self.set_headers(self.default_headers)
         self.set_proxy(self.current_proxy)

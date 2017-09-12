@@ -10,10 +10,11 @@ logger = logging.getLogger(__name__)
 
 class DriverSeleniumPhantomJS(Web, SeleniumUtils):
 
-    def __init__(self, headers={}, proxy=None):
+    def __init__(self, headers={}, proxy=None, **driver_args):
         super().__init__()
         self.driver = None
         self.driver_type = 'selenium_phantomjs'
+        self.driver_args = driver_args
         self.phantomjs_service_args = []
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
         self.current_headers = {**self._get_default_header(), **headers}
@@ -82,7 +83,8 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         """
         logger.debug("Create new phantomjs web driver")
         self.driver = webdriver.PhantomJS(service_args=self.phantomjs_service_args,
-                                          desired_capabilities=self.dcap)
+                                          desired_capabilities=self.dcap,
+                                          **self.driver_args)
         self.driver.set_window_size(1920, 1080)
 
     def _update(self):
