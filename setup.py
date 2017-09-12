@@ -7,7 +7,7 @@ setup(
     version='0.1.2',
     description='Web wrapper for Selenium/requests',
     author='Eddy Hintze',
-    author_email="eddy.hintze@gmail.com",
+    author_email="eddy@hintze.co",
     url="https://github.com/xtream1101/web-wrapper",
     license='MIT',
     classifiers=[
