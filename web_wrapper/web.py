@@ -28,8 +28,8 @@ class Web:
     Need to be on its own that way each profile can have its own instance of it for proxy support
     """
 
-    def __init__(self, headers={}, proxy=None):
-        self.ua = UserAgent()
+    def __init__(self, headers={}, proxy=None, fake_ua_kwargs={}):
+        self.ua = UserAgent(**fake_ua_kwargs)
         self.scraper = None
 
         # Number of times to re-try a url

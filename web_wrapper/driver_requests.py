@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 class DriverRequests(Web):
 
-    def __init__(self, headers={}, proxy=None, **driver_args):
-        super().__init__(headers=headers, proxy=proxy)
+    def __init__(self, headers={}, proxy=None, fake_ua_kwargs={}, **driver_args):
+        super().__init__(headers=headers, proxy=proxy, fake_ua_kwargs=fake_ua_kwargs)
         self.driver = None
         self.driver_type = 'requests'
         self.driver_args = driver_args

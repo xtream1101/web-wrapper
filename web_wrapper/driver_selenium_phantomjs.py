@@ -10,12 +10,13 @@ logger = logging.getLogger(__name__)
 
 class DriverSeleniumPhantomJS(Web, SeleniumUtils):
 
-    def __init__(self, headers={}, proxy=None, **driver_args):
-        super().__init__()
+    def __init__(self, headers={}, proxy=None, service_args=[], fake_ua_kwargs={}, **driver_args):
+        super().__init__(headers=headers, proxy=proxy, fake_ua_kwargs=fake_ua_kwargs)
         self.driver = None
         self.driver_type = 'selenium_phantomjs'
         self.driver_args = driver_args
-        self.phantomjs_service_args = []
+        self.default_service_args = service_args
+        self.phantomjs_service_args = self.default_service_args
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
         self.current_headers = {**self._get_default_header(), **headers}
         self.current_proxy = proxy
@@ -59,13 +60,13 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
 
         self.current_proxy = proxy
         if proxy is None:
-            self.phantomjs_service_args = []
+            self.phantomjs_service_args = self.default_service_args
         else:
             proxy_parts = cutil.get_proxy_parts(proxy)
 
-            self.phantomjs_service_args = ['--proxy={host}:{port}'.format(**proxy_parts),
-                                           '--proxy-type={schema}'.format(**proxy_parts),
-                                           ]
+            self.phantomjs_service_args.extend(['--proxy={host}:{port}'.format(**proxy_parts),
+                                                '--proxy-type={schema}'.format(**proxy_parts),
+                                                ])
             if proxy_parts.get('user') is not None:
                 self.phantomjs_service_args.append('--proxy-auth={user}:{password}'.format(**proxy_parts))
 
@@ -102,7 +103,7 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         # Kill old connection
         self.quit()
         # Clear proxy data
-        self.phantomjs_service_args = []
+        self.phantomjs_service_args = self.default_service_args
         # Clear headers
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
         # Create new web driver
