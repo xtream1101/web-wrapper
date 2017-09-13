@@ -28,9 +28,14 @@ class Web:
     Need to be on its own that way each profile can have its own instance of it for proxy support
     """
 
-    def __init__(self, headers={}, proxy=None, fake_ua_kwargs={}):
+    def __init__(self, headers={}, proxy=None, fake_ua_kwargs={}, **driver_args):
         self.ua = UserAgent(**fake_ua_kwargs)
         self.scraper = None
+
+        self.driver = None
+        self.driver_args = driver_args
+        self.current_proxy = proxy
+        self.current_headers = {**self._get_default_header(), **headers}
 
         # Number of times to re-try a url
         self._num_retries = 3

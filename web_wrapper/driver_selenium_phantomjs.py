@@ -10,16 +10,12 @@ logger = logging.getLogger(__name__)
 
 class DriverSeleniumPhantomJS(Web, SeleniumUtils):
 
-    def __init__(self, headers={}, proxy=None, service_args=[], fake_ua_kwargs={}, **driver_args):
-        super().__init__(headers=headers, proxy=proxy, fake_ua_kwargs=fake_ua_kwargs)
-        self.driver = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.driver_type = 'selenium_phantomjs'
-        self.driver_args = driver_args
-        self.default_service_args = service_args
-        self.phantomjs_service_args = self.default_service_args
+        self.default_service_args = self.driver_args.get('service_args', [])
+        self.driver_args['service_args'] = self.default_service_args
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
-        self.current_headers = {**self._get_default_header(), **headers}
-        self.current_proxy = proxy
         self.set_headers(self.current_headers, update=False)
         self.set_proxy(self.current_proxy, update=False)
         self._create_session()
@@ -60,15 +56,15 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
 
         self.current_proxy = proxy
         if proxy is None:
-            self.phantomjs_service_args = self.default_service_args
+            self.driver_args['service_args'] = self.default_service_args
         else:
             proxy_parts = cutil.get_proxy_parts(proxy)
 
-            self.phantomjs_service_args.extend(['--proxy={host}:{port}'.format(**proxy_parts),
-                                                '--proxy-type={schema}'.format(**proxy_parts),
-                                                ])
+            self.driver_args['service_args'].extend(['--proxy={host}:{port}'.format(**proxy_parts),
+                                                     '--proxy-type={schema}'.format(**proxy_parts),
+                                                     ])
             if proxy_parts.get('user') is not None:
-                self.phantomjs_service_args.append('--proxy-auth={user}:{password}'.format(**proxy_parts))
+                self.driver_args['service_args'].append('--proxy-auth={user}:{password}'.format(**proxy_parts))
 
         # Recreate webdriver with new proxy settings
         if update is True and update_web_driver is True:
@@ -83,8 +79,7 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         Creates a fresh session with no/default headers and proxies
         """
         logger.debug("Create new phantomjs web driver")
-        self.driver = webdriver.PhantomJS(service_args=self.phantomjs_service_args,
-                                          desired_capabilities=self.dcap,
+        self.driver = webdriver.PhantomJS(desired_capabilities=self.dcap,
                                           **self.driver_args)
         self.driver.set_window_size(1920, 1080)
 
@@ -103,7 +98,7 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         # Kill old connection
         self.quit()
         # Clear proxy data
-        self.phantomjs_service_args = self.default_service_args
+        self.driver_args['service_args'] = self.default_service_args
         # Clear headers
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
         # Create new web driver

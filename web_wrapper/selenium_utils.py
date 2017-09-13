@@ -26,9 +26,6 @@ class SeleniumHTTPError(IOError):
 
 class SeleniumUtils:
 
-    def __init__(self):
-        pass
-
     def get_selenium_header(self):
         """
         Return server response headers from selenium request

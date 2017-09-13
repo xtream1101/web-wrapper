@@ -8,12 +8,9 @@ logger = logging.getLogger(__name__)
 
 class DriverRequests(Web):
 
-    def __init__(self, headers={}, proxy=None, fake_ua_kwargs={}, **driver_args):
-        super().__init__(headers=headers, proxy=proxy, fake_ua_kwargs=fake_ua_kwargs)
-        self.driver = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.driver_type = 'requests'
-        self.driver_args = driver_args
-        self.current_proxy = proxy
 
         self._create_session()
 
@@ -63,7 +60,7 @@ class DriverRequests(Web):
         """
         self.driver = requests.Session(**self.driver_args)
         # Set default headers
-        self.set_headers(self.default_headers)
+        self.set_headers(self.current_headers)
         self.set_proxy(self.current_proxy)
 
     def reset(self):

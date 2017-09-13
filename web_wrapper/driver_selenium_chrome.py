@@ -10,14 +10,10 @@ logger = logging.getLogger(__name__)
 
 class DriverSeleniumChrome(Web, SeleniumUtils):
 
-    def __init__(self, headers={}, proxy=None, fake_ua_kwargs={}, **driver_args):
-        super().__init__(headers=headers, proxy=proxy, fake_ua_kwargs=fake_ua_kwargs)
-        self.driver = None
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.driver_type = 'selenium_chrome'
-        self.driver_args = driver_args
         self.opts = webdriver.ChromeOptions()
-        self.current_headers = {**self._get_default_header(), **headers}
-        self.current_proxy = proxy
         self.set_headers(self.current_headers, update=False)
         self.set_proxy(self.current_proxy, update=False)
         self._create_session()
