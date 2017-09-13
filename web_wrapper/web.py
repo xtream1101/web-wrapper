@@ -35,15 +35,14 @@ class Web:
         self.driver = None
         self.driver_args = driver_args
         self.current_proxy = proxy
-        self.current_headers = {**self._get_default_header(), **headers}
 
         # Number of times to re-try a url
         self._num_retries = 3
 
         if headers is not None:
-            self.default_headers = {**self._get_default_header(), **headers}
+            self.current_headers = {**self._get_default_header(), **headers}
         else:
-            self.default_headers = {}
+            self.current_headers = {}
 
         # Set the default response values
         self._reset_response()
@@ -166,6 +165,20 @@ class Web:
 
         return save_location
 
+    def new_proxy(self):
+        raise NotImplementedError
+
+    def new_profile(self):
+        logger.info("Create a new profile to use")
+        try:
+            new_proxy = self.new_proxy()
+            logger.info("Using new proxy: {proxy}".format(proxy=new_proxy))
+            self.set_proxy(new_proxy)
+        except NotImplemented:
+            pass
+        except Exception:
+            logger.exception("Something went wrong when getting a new proxy")
+
     ###########################################################################
     # Get/load page
     ###########################################################################
@@ -178,14 +191,6 @@ class Web:
         """
         self._reset_response()
 
-        # Check driver_kwargs for anything that we already set
-        kwargs_cannot_be = ['headers', 'cookies', 'timeout']
-        for key_name in kwargs_cannot_be:
-            if driver_kwargs.get(key_name) is not None:
-                del driver_kwargs[key_name]
-                logger.warning("Cannot pass `{key}` in driver_kwargs to get_site(). `{key}` is already set by default"
-                               .format(key=key_name))
-
         num_tries += 1
         # Save args and kwargs so they can be used for trying the function again
         tmp_args = locals().copy()
@@ -194,6 +199,14 @@ class Web:
         del tmp_args['url']
         del tmp_args['self']
         get_site_kwargs = tmp_args
+
+        # Check driver_kwargs for anything that we already set
+        kwargs_cannot_be = ['headers', 'cookies', 'timeout']
+        for key_name in kwargs_cannot_be:
+            if driver_kwargs.get(key_name) is not None:
+                del driver_kwargs[key_name]
+                logger.warning("Cannot pass `{key}` in driver_kwargs to get_site(). `{key}` is already set by default"
+                               .format(key=key_name))
 
         # Check if a url is being passed in
         if url is None:
@@ -235,13 +248,9 @@ class Web:
             e_name = type(e).__name__
             if num_tries < self._num_retries and retry_enabled is True:
                 logger.info("{} [get_site]: try #{} on {} Error {}".format(e_name, num_tries, url, e))
-                # Could be a bad proxy, try again with a new one
-                logger.info("{}: Create a new profile to use".format(e_name))
                 time.sleep(2)
-                # A bad api key would not give this error, no need to get a new one
-                # self.new_profile(api=False)  # TODO
-                # return self.get_site(*get_site_args, **get_site_kwargs)
-                return None
+                self.new_profile()
+                return self.get_site(*get_site_args, **get_site_kwargs)
 
             else:
                 logger.error("{} [get_site]: try #{} on{}".format(e_name, num_tries, url))
@@ -296,9 +305,8 @@ class Web:
         if status_code in [400, 401, 403] and num_tries < self._num_retries:
             # Fail after 3 tries
             logger.info("HTTP {} error, try #{} on url: {}".format(status_code, num_tries, url))
-            logger.warning("{}: Create a new profile to use".format(status_code))
             time.sleep(.5)
-            # self.new_profile(api)  # TODO
+            self.new_profile()
             return True
 
         elif status_code in [500, 503, 504, 520] and num_tries < self._num_retries:
