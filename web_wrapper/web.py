@@ -47,12 +47,6 @@ class Web:
         # Set the default response values
         self._reset_response()
 
-    def set_headers(self, headers):
-        if not headers:
-            logger.warning("Headers set to None! Site may not load correctly.")
-
-        self.set_headers_driver(headers)
-
     def _reset_response(self):
         """
         Vars to track per request made
@@ -172,7 +166,6 @@ class Web:
         logger.info("Create a new profile to use")
         try:
             new_proxy = self.new_proxy()
-            logger.info("Using new proxy: {proxy}".format(proxy=new_proxy))
             self.set_proxy(new_proxy)
         except NotImplemented:
             pass

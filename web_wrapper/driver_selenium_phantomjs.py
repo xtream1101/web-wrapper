@@ -16,7 +16,7 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         self.default_service_args = self.driver_args.get('service_args', [])
         self.driver_args['service_args'] = self.default_service_args
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
-        self.set_headers(self.current_headers, update=False)
+        self.update_headers(self.current_headers, update=False)
         self.set_proxy(self.current_proxy, update=False)
         self._create_session()
 
@@ -40,7 +40,7 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         # TODO: Try and get from phantom directly to be accurate
         return self.current_headers
 
-    def add_headers(self, headers):
+    def update_headers(self, headers):
         self.current_headers.update(headers)
         self.set_headers(self.current_headers)
 

@@ -15,13 +15,13 @@ class DriverRequests(Web):
         self._create_session()
 
     # Headers Set/Get
-    def set_headers_driver(self, headers):
+    def set_headers(self, headers):
         self.driver.headers = headers
 
     def get_headers(self):
         return self.driver.headers
 
-    def add_headers(self, headers):
+    def update_headers(self, headers):
         self.driver.headers.update(headers)
 
     # Cookies Set/Get
@@ -60,7 +60,7 @@ class DriverRequests(Web):
         """
         self.driver = requests.Session(**self.driver_args)
         # Set default headers
-        self.set_headers(self.current_headers)
+        self.update_headers(self.current_headers)
         self.set_proxy(self.current_proxy)
 
     def reset(self):

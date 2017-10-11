@@ -14,7 +14,7 @@ class DriverSeleniumChrome(Web, SeleniumUtils):
         super().__init__(*args, **kwargs)
         self.driver_type = 'selenium_chrome'
         self.opts = webdriver.ChromeOptions()
-        self.set_headers(self.current_headers, update=False)
+        self.update_headers(self.current_headers, update=False)
         self.set_proxy(self.current_proxy, update=False)
         self._create_session()
 
@@ -39,7 +39,7 @@ class DriverSeleniumChrome(Web, SeleniumUtils):
         # TODO: Try and get from chrome directly to be accurate
         return self.current_headers
 
-    def add_headers(self, headers):
+    def update_headers(self, headers):
         self.current_headers.update(headers)
         self.set_headers(self.current_headers)
 
