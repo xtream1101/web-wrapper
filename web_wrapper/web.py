@@ -291,21 +291,12 @@ class Web:
         #     # Try with the same apikey/profile again after a short wait
         #     try_profile_again = True
 
-        # status_codes are in a list so we can have any code handled using any code block
-        # If we were to do `if status_code < 500` to get all 400 codes, that means we cannot handle
-        #   a non 400 code the same way if need be
-        # In each list status_codes should be in number order for ease of finding them
-        if status_code in [400, 401, 403] and num_tries < self._num_retries:
+        # Retry for any status code in the 400's or greater
+        if status_code >= 400 and num_tries < self._num_retries:
             # Fail after 3 tries
             logger.info("HTTP {} error, try #{} on url: {}".format(status_code, num_tries, url))
             time.sleep(.5)
             self.new_profile()
-            return True
-
-        elif status_code in [500, 503, 504, 520] and num_tries < self._num_retries:
-            # Wait a second and try again, fail after 3 tries
-            logger.info("HTTP {} error, try #{} on url: {}".format(status_code, num_tries, url))
-            time.sleep(1)
             return True
 
         else:
