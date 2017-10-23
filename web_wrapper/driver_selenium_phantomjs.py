@@ -40,9 +40,9 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         # TODO: Try and get from phantom directly to be accurate
         return self.current_headers
 
-    def update_headers(self, headers):
+    def update_headers(self, headers, update=True):
         self.current_headers.update(headers)
-        self.set_headers(self.current_headers)
+        self.set_headers(self.current_headers, update=True)
 
     # Proxy Set/Get
     def set_proxy(self, proxy, update=True):
