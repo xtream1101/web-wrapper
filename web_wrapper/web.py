@@ -167,7 +167,7 @@ class Web:
         try:
             new_proxy = self.new_proxy()
             self.set_proxy(new_proxy)
-        except NotImplemented:
+        except NotImplementedError:
             pass
         except Exception:
             logger.exception("Something went wrong when getting a new proxy")
