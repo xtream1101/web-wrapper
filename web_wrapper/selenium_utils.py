@@ -60,7 +60,7 @@ class SeleniumUtils:
 
         return self.driver.execute_script(javascript)
 
-    def _get_site(self, url, page_format, headers, cookies, timeout, driver_args, driver_kwargs):
+    def _get_site(self, url, page_format, headers, cookies, timeout, driver_args, driver_kwargs, parser):
         """
         Try and return page content in the requested format using selenium
         """
@@ -95,29 +95,7 @@ class SeleniumUtils:
             # If an exception was not thrown then check the http status code
             if status_code < 400:
                 # If the http status code is not an error
-                rdata = None
-                if page_format == 'html':
-                    logger.debug("Convert selenium html into soup")
-                    rdata = self.get_soup(self.driver.page_source, input_type='html')
-
-                elif page_format == 'json':
-                    logger.debug("Convert selenium json response into dict")
-                    rdata = json.loads(self.driver.find_element_by_tag_name('body').text)
-
-                elif page_format == 'xml':
-                    logger.debug("Convert selenium xml response into soup")
-                    rdata = self.get_soup(self.driver.page_source, input_type='xml')
-
-                elif page_format == 'raw':
-                    logger.debug("Do not convert the selenium response, return the page source as a string")
-                    # Return unparsed html
-                    # In this case just use selenium's built in find/parsing
-                    rdata = self.driver.page_source
-
-                else:
-                    rdata = None
-
-                return rdata
+                return self.parse_source(self.driver.page_source, page_format, parser)
             else:
                 # If http status code is 400 or greater
                 raise SeleniumHTTPError("Status code >= 400", status_code=status_code)

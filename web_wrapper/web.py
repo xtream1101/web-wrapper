@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import time
 import cutil
 import urllib
@@ -7,6 +8,7 @@ import logging
 import requests
 from PIL import Image  # pip install pillow
 from io import BytesIO
+from parsel import Selector
 from bs4 import BeautifulSoup
 from web_wrapper.selenium_utils import SeleniumHTTPError
 
@@ -184,7 +186,7 @@ class Web:
     ###########################################################################
     def get_site(self, url, cookies={}, page_format='html', return_on_error=[], retry_enabled=True,
                  num_tries=0, num_apikey_tries=0, headers={}, api=False, track_stat=True, timeout=30,
-                 force_requests=False, driver_args=(), driver_kwargs={}):
+                 force_requests=False, driver_args=(), driver_kwargs={}, parser='beautifulsoup'):
         """
         headers & cookies - Will update to the current headers/cookies and just be for this request
         driver_args & driver_kwargs - Gets passed and expanded out to the driver
@@ -230,7 +232,7 @@ class Web:
         ##
         rdata = None
         try:
-            rdata = self._get_site(url, page_format, headers, cookies, timeout, driver_args, driver_kwargs)
+            rdata = self._get_site(url, page_format, headers, cookies, timeout, driver_args, driver_kwargs, parser)
 
         ##
         # Exceptions from Selenium
@@ -311,6 +313,31 @@ class Web:
                            .format(num_tries, status_code, url))
 
         return None
+
+    def parse_source(self, source, page_format, parser):
+        rdata = None
+        if page_format == 'html':
+            if parser == 'beautifulsoup':
+                rdata = self.get_soup(source, input_type='html')
+            elif parser == 'parsel':
+                rdata = Selector(text=source)
+            else:
+                logger.error("No parser passed for parsing html")
+
+        elif page_format == 'json':
+            if self.driver == 'requests':
+                rdata = source.json()
+            else:
+                rdata = json.loads(self.driver.find_element_by_tag_name('body').text)
+
+        elif page_format == 'xml':
+            rdata = self.get_soup(source, input_type='xml')
+
+        elif page_format == 'raw':
+            # Return unparsed html
+            rdata = source
+
+        return rdata
 
     def download(self, url, save_path, header={}, redownload=False):
         """

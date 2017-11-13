@@ -77,7 +77,7 @@ class DriverRequests(Web):
         self.driver = None
 
     # Actions
-    def _get_site(self, url, page_format, headers, cookies, timeout, driver_args, driver_kwargs):
+    def _get_site(self, url, page_format, headers, cookies, timeout, driver_args, driver_kwargs, parser):
         """
         Try and return page content in the requested format using requests
         """
@@ -98,23 +98,7 @@ class DriverRequests(Web):
 
             if response.status_code == requests.codes.ok:
                 # Return the correct format
-                if page_format == 'html':
-                    rdata = self.get_soup(response.text, input_type='html')
-
-                elif page_format == 'json':
-                    rdata = response.json()
-
-                elif page_format == 'xml':
-                    rdata = self.get_soup(response.text, input_type='xml')
-
-                elif page_format == 'raw':
-                    # Return unparsed html
-                    rdata = response.text
-
-                else:
-                    rdata = None
-
-                return rdata
+                return self.parse_source(response.text, page_format, parser)
 
             response.raise_for_status()
 
