@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='web_wrapper',
     packages=['web_wrapper'],
-    version='0.2.2',
+    version='0.3.0',
     description='Web wrapper for Selenium/requests',
     author='Eddy Hintze',
     author_email="eddy@hintze.co",
@@ -25,6 +25,5 @@ setup(
         'pillow',
         'requests',
         'selenium',
-        'fake_useragent',
     ],
 )

@@ -8,8 +8,6 @@ import requests
 from PIL import Image  # pip install pillow
 from io import BytesIO
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from fake_useragent import UserAgent
 from web_wrapper.selenium_utils import SeleniumHTTPError
 
 logger = logging.getLogger(__name__)
@@ -28,8 +26,7 @@ class Web:
     Need to be on its own that way each profile can have its own instance of it for proxy support
     """
 
-    def __init__(self, headers={}, proxy=None, fake_ua_kwargs={}, **driver_args):
-        self.ua = UserAgent(**fake_ua_kwargs)
+    def __init__(self, headers={}, proxy=None, **driver_args):
         self.scraper = None
 
         self.driver = None
@@ -40,7 +37,7 @@ class Web:
         self._num_retries = 3
 
         if headers is not None:
-            self.current_headers = {**self._get_default_header(), **headers}
+            self.current_headers = headers
         else:
             self.current_headers = {}
 
@@ -55,12 +52,6 @@ class Web:
         self.status_code = None
         self.url = None
         self.response = None
-
-    def _get_default_header(self):
-        default_header = {'User-Agent': self.ua.random,
-                          # 'Accept-Encoding': 'gzip, deflate',  # Setting this breaks everything somehow
-                          }
-        return default_header
 
     def get_image_dimension(self, url):
         """
@@ -162,15 +153,31 @@ class Web:
     def new_proxy(self):
         raise NotImplementedError
 
-    def new_profile(self):
-        logger.info("Create a new profile to use")
+    def new_headers(self):
+        raise NotImplementedError
+
+    def _try_new_proxy(self):
         try:
             new_proxy = self.new_proxy()
             self.set_proxy(new_proxy)
         except NotImplementedError:
-            pass
+            logger.warning("No function new_proxy() found, not changing proxy")
         except Exception:
             logger.exception("Something went wrong when getting a new proxy")
+
+    def _try_new_headers(self):
+        try:
+            new_headers = self.new_headers()
+            self.set_headers(new_headers)
+        except NotImplementedError:
+            logger.warning("No function new_headers() found, not changing headers")
+        except Exception:
+            logger.exception("Something went wrong when getting a new header")
+
+    def new_profile(self):
+        logger.info("Create a new profile to use")
+        self._try_new_proxy()
+        self._try_new_headers()
 
     ###########################################################################
     # Get/load page
