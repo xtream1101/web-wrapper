@@ -325,8 +325,8 @@ class Web:
                 logger.error("No parser passed for parsing html")
 
         elif page_format == 'json':
-            if self.driver == 'requests':
-                rdata = source.json()
+            if self.driver_type == 'requests':
+                rdata = json.loads(source)
             else:
                 rdata = json.loads(self.driver.find_element_by_tag_name('body').text)
 

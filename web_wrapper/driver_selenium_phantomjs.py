@@ -44,6 +44,14 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         self.current_headers.update(headers)
         self.set_headers(self.current_headers, update=True)
 
+    # Cookies Set/Get
+    def get_cookies(self):
+        return self.driver.get_cookies()
+
+    def set_cookies(self, cookies):
+        # TODO
+        pass
+
     # Proxy Set/Get
     def set_proxy(self, proxy, update=True):
         """
