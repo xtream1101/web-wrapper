@@ -16,7 +16,7 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         self.default_service_args = self.driver_args.get('service_args', [])
         self.driver_args['service_args'] = self.default_service_args
         self.dcap = dict(webdriver.DesiredCapabilities.PHANTOMJS)
-        self.update_headers(self.current_headers, update=False)
+        self.set_headers(self.current_headers, update=False)
         self.set_proxy(self.current_proxy, update=False)
         self._create_session()
 
@@ -42,15 +42,22 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
 
     def update_headers(self, headers, update=True):
         self.current_headers.update(headers)
-        self.set_headers(self.current_headers, update=True)
+        self.set_headers(self.current_headers, update=update)
 
     # Cookies Set/Get
     def get_cookies(self):
         return self.driver.get_cookies()
 
     def set_cookies(self, cookies):
-        # TODO
-        pass
+        # TODO: Does not seem to actually set them correctly
+        self.driver.delete_all_cookies()
+        for cookie in cookies:
+            print(cookie)
+            self.driver.add_cookie({k: cookie[k] for k in ('name', 'value', 'path', 'expirationDate', 'expiry', 'domain') if k in cookie})
+
+    def update_cookies(self, cookies):
+        self.current_cookies.expand(cookies)
+        self.set_cookies(self.current_cookies)
 
     # Proxy Set/Get
     def set_proxy(self, proxy, update=True):
@@ -89,6 +96,7 @@ class DriverSeleniumPhantomJS(Web, SeleniumUtils):
         logger.debug("Create new phantomjs web driver")
         self.driver = webdriver.PhantomJS(desired_capabilities=self.dcap,
                                           **self.driver_args)
+        self.set_cookies(self.current_cookies)
         self.driver.set_window_size(1920, 1080)
 
     def _update(self):

@@ -15,11 +15,11 @@ class DriverRequests(Web):
         self._create_session()
 
     # Headers Set/Get
-    def set_headers(self, headers):
-        self.driver.headers = headers
-
     def get_headers(self):
         return self.driver.headers
+
+    def set_headers(self, headers):
+        self.driver.headers = headers
 
     def update_headers(self, headers):
         self.driver.headers.update(headers)
@@ -29,8 +29,23 @@ class DriverRequests(Web):
         return self.driver.cookies.get_dict()
 
     def set_cookies(self, cookies):
-        # TODO
-        pass
+        safe_cookies = {}
+        if isinstance(cookies, list) is True:
+            for cookie in cookies:
+                safe_cookies.update({'name': cookie.get('name', ''), 'value': cookie.get('value', '')})
+
+        else:
+            safe_cookies = cookies
+
+        self.driver.cookies = safe_cookies
+
+    def update_cookies(self, cookies):
+        if isinstance(cookies, list) is True:
+            for cookie in cookies:
+                safe_cookie = {cookie.get('name', ''): cookie.get('value', '')}
+                self.driver.cookies.update(safe_cookie)
+        else:
+            self.driver.cookies.update(cookies)
 
     # Proxy Set/Get
     def set_proxy(self, proxy):
@@ -61,6 +76,7 @@ class DriverRequests(Web):
         self.driver = requests.Session(**self.driver_args)
         # Set default headers
         self.update_headers(self.current_headers)
+        self.update_cookies(self.current_cookies)
         self.set_proxy(self.current_proxy)
 
     def reset(self):

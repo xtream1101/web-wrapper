@@ -28,7 +28,7 @@ class Web:
     Need to be on its own that way each profile can have its own instance of it for proxy support
     """
 
-    def __init__(self, headers={}, proxy=None, **driver_args):
+    def __init__(self, headers={}, cookies={}, proxy=None, **driver_args):
         self.scraper = None
 
         self.driver = None
@@ -42,6 +42,11 @@ class Web:
             self.current_headers = headers
         else:
             self.current_headers = {}
+
+        if cookies is not None:
+            self.current_cookies = cookies
+        else:
+            self.current_cookies = {}
 
         # Set the default response values
         self._reset_response()
