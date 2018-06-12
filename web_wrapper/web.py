@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import json
 import time
@@ -191,7 +192,8 @@ class Web:
     ###########################################################################
     def get_site(self, url, cookies={}, page_format='html', return_on_error=[], retry_enabled=True,
                  num_tries=0, num_apikey_tries=0, headers={}, api=False, track_stat=True, timeout=30,
-                 force_requests=False, driver_args=(), driver_kwargs={}, parser='beautifulsoup'):
+                 force_requests=False, driver_args=(), driver_kwargs={}, parser='beautifulsoup',
+                 custom_source_checks=[]):
         """
         headers & cookies - Will update to the current headers/cookies and just be for this request
         driver_args & driver_kwargs - Gets passed and expanded out to the driver
@@ -237,7 +239,19 @@ class Web:
         ##
         rdata = None
         try:
-            rdata = self._get_site(url, page_format, headers, cookies, timeout, driver_args, driver_kwargs, parser)
+            source_text = self._get_site(url, headers, cookies, timeout, driver_args, driver_kwargs)
+            if custom_source_checks:
+                # Check if there are any custom check to run
+                for re_text, status_code in custom_source_checks:
+                    if re.search(re_text, source_text):
+                        if self.response is None:
+                            # This is needed when using selenium and we still need to pass in the 'response'
+                            self.response = type('', (), {})()
+                        self.response.status_code = status_code
+                        self.status_code = status_code
+                        raise requests.exceptions.HTTPError("Custom matched status code", response=self.response)
+
+            rdata = self.parse_source(source_text, page_format, parser)
 
         ##
         # Exceptions from Selenium

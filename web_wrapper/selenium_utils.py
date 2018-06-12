@@ -60,7 +60,7 @@ class SeleniumUtils:
 
         return self.driver.execute_script(javascript)
 
-    def _get_site(self, url, page_format, headers, cookies, timeout, driver_args, driver_kwargs, parser):
+    def _get_site(self, url, headers, cookies, timeout, driver_args, driver_kwargs):
         """
         Try and return page content in the requested format using selenium
         """
@@ -95,7 +95,7 @@ class SeleniumUtils:
             # If an exception was not thrown then check the http status code
             if status_code < 400:
                 # If the http status code is not an error
-                return self.parse_source(self.driver.page_source, page_format, parser)
+                return self.driver.page_source
             else:
                 # If http status code is 400 or greater
                 raise SeleniumHTTPError("Status code >= 400", status_code=status_code)

@@ -93,7 +93,7 @@ class DriverRequests(Web):
         self.driver = None
 
     # Actions
-    def _get_site(self, url, page_format, headers, cookies, timeout, driver_args, driver_kwargs, parser):
+    def _get_site(self, url, headers, cookies, timeout, driver_args, driver_kwargs):
         """
         Try and return page content in the requested format using requests
         """
@@ -114,7 +114,7 @@ class DriverRequests(Web):
 
             if response.status_code == requests.codes.ok:
                 # Return the correct format
-                return self.parse_source(response.text, page_format, parser)
+                return response.text
 
             response.raise_for_status()
 
