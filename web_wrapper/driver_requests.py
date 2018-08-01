@@ -28,24 +28,27 @@ class DriverRequests(Web):
     def get_cookies(self):
         return self.driver.cookies.get_dict()
 
+    def _clean_cookies(self, cookies):
+        clean_cookies = []
+
+        if isinstance(cookies, dict) is True:
+            cookies = [cookies]
+
+        for cookie in cookies:
+            if 'name' in cookie and 'value' in cookie:
+                clean_cookies.append({cookie['name']: cookie['value']})
+            else:
+                name = list(cookie.keys())[0]
+                clean_cookies.append({name: cookie[name]})
+
+        return clean_cookies
+
     def set_cookies(self, cookies):
-        safe_cookies = {}
-        if isinstance(cookies, list) is True:
-            for cookie in cookies:
-                safe_cookies.update({'name': cookie.get('name', ''), 'value': cookie.get('value', '')})
-
-        else:
-            safe_cookies = cookies
-
-        self.driver.cookies = safe_cookies
+        self.driver.cookies = self._clean_cookies(cookies)
 
     def update_cookies(self, cookies):
-        if isinstance(cookies, list) is True:
-            for cookie in cookies:
-                safe_cookie = {cookie.get('name', ''): cookie.get('value', '')}
-                self.driver.cookies.update(safe_cookie)
-        else:
-            self.driver.cookies.update(cookies)
+        for cookie in self._clean_cookies(cookies):
+            self.driver.cookies.update(cookie)
 
     # Proxy Set/Get
     def set_proxy(self, proxy):
