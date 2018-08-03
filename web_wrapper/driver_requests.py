@@ -28,27 +28,36 @@ class DriverRequests(Web):
     def get_cookies(self):
         return self.driver.cookies.get_dict()
 
-    def _clean_cookies(self, cookies):
-        clean_cookies = []
+    def _format_cookies(self, cookies):
+        format_cookies = []
 
         if isinstance(cookies, dict) is True:
             cookies = [cookies]
 
         for cookie in cookies:
             if 'name' in cookie and 'value' in cookie:
-                clean_cookies.append({cookie['name']: cookie['value']})
+                cookie['value'] = str(cookie['value'])
+                format_cookies.append(cookie)
             else:
                 name = list(cookie.keys())[0]
-                clean_cookies.append({name: cookie[name]})
+                format_cookies.append({'name': name, 'value': str(cookie[name])})
 
-        return clean_cookies
+        return format_cookies
 
     def set_cookies(self, cookies):
-        self.driver.cookies = self._clean_cookies(cookies)
+        # Delete all current cookies
+        self.driver.cookies.clear()
+        self.update_cookies(cookies)
 
     def update_cookies(self, cookies):
-        for cookie in self._clean_cookies(cookies):
-            self.driver.cookies.update(cookie)
+        for cookie in self._format_cookies(cookies):
+            name = cookie['name']
+            value = cookie['value']
+            # Delete the name and value and expand out any other keys in case there
+            #   are domain and other values for the cookie
+            del cookie['name']
+            del cookie['value']
+            self.driver.cookies.set(name, value, **cookie)
 
     # Proxy Set/Get
     def set_proxy(self, proxy):

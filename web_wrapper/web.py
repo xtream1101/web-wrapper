@@ -29,7 +29,7 @@ class Web:
     Need to be on its own that way each profile can have its own instance of it for proxy support
     """
 
-    def __init__(self, headers={}, cookies={}, proxy=None, **driver_args):
+    def __init__(self, headers=None, cookies=None, proxy=None, **driver_args):
         self.scraper = None
 
         self.driver = None
@@ -47,7 +47,7 @@ class Web:
         if cookies is not None:
             self.current_cookies = cookies
         else:
-            self.current_cookies = {}
+            self.current_cookies = []
 
         # Set the default response values
         self._reset_response()
@@ -190,7 +190,7 @@ class Web:
     ###########################################################################
     # Get/load page
     ###########################################################################
-    def get_site(self, url, cookies={}, page_format='html', return_on_error=[], retry_enabled=True,
+    def get_site(self, url, cookies=[], page_format='html', return_on_error=[], retry_enabled=True,
                  num_tries=0, num_apikey_tries=0, headers={}, api=False, track_stat=True, timeout=30,
                  force_requests=False, driver_args=(), driver_kwargs={}, parser='beautifulsoup',
                  custom_source_checks=[]):
