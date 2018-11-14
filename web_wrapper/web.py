@@ -322,14 +322,20 @@ class Web:
         # Retry for any status code in the 400's or greater
         if status_code >= 400 and num_tries < self._num_retries:
             # Fail after 3 tries
-            logger.info("HTTP {} error, try #{} on url: {}".format(status_code, num_tries, url))
+            logger.info("HTTP error, try #{}, Status: {} on url: {}".format(num_tries, status_code, url),
+                        extra={'status_code': status_code,
+                               'num_tries': num_tries,
+                               'url': url})
             time.sleep(.5)
             self.new_profile()
             return True
 
         else:
             logger.warning("HTTPError [get_site]\n\t# of Tries: {}\n\tCode: {} - {}"
-                           .format(num_tries, status_code, url))
+                           .format(num_tries, status_code, url),
+                           extra={'status_code': status_code,
+                                  'num_tries': num_tries,
+                                  'url': url})
 
         return None
 
