@@ -115,11 +115,9 @@ class DriverRequests(Web):
             self.url = response.url
             self.response = response
 
-            if response.status_code == requests.codes.ok:
-                # Return the correct format
-                return response.text
-
             response.raise_for_status()
+
+            return response.text
 
         except Exception as e:
             raise e.with_traceback(sys.exc_info()[2])
